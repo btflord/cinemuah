@@ -1,0 +1,17 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-electron/
+release/
+
+# Local databases (personal libraries, never published)
+*.sqlite
+*.sqlite.tmp
+*.sqlite.corrupt-*
+*.db
+
+# OS / editor noise
+.DS_Store
+*.log
+.env
+.env.*

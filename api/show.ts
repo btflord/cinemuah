@@ -1,11 +1,13 @@
 // GET /api/show?id — a series with every episode of every season (specials excluded).
 import { tmdb, handler, mapShow, intParam, HttpError, IMG } from './_tmdb';
+import { showWithEpisodes } from './_tvmaze';
 
 const MAX_SEASONS = 30;
 
 export default handler(async q => {
-  const id = intParam(q.id, 0, 0, 1e9);
+  const id = intParam(q.id, 0, -1e9, 1e9);
   if (!id) throw new HttpError(400, 'Missing series id');
+  if (id < 0) return showWithEpisodes(-id); // TVMaze id (keyless fallback)
   const raw = await tmdb(`/tv/${id}`, { append_to_response: 'videos,external_ids' });
 
   const seasonNumbers: number[] = (raw.seasons || [])

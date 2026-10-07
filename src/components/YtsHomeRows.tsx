@@ -155,18 +155,21 @@ function useMovieShelf(config: MovieShelfConfig, enabled: boolean, languageKey: 
     }
   }, [config, key]);
 
+  const catalogueError = useCatalogueError();
   useEffect(() => {
     const cached = movieCache.get(key);
     setState(cached ?? null);
-    if (enabled && !cached) load(1);
-  }, [enabled, key, load]);
+    // Once the catalogue is known to be unreachable, don't fire a request per shelf
+    // (a failed shelf collapses, which pulls the next ones into view: a cascade).
+    if (enabled && !cached && !catalogueError) load(1);
+  }, [enabled, key, load, catalogueError]);
 
   const hasMore = !!state && state.movies.length < state.total;
   const loadMore = useCallback(() => {
     if (state && hasMore) load(state.page + 1);
   }, [state, hasMore, load]);
 
-  return { state, loading, failed, hasMore, loadMore };
+  return { state, loading, failed: failed || (!!catalogueError && !state), hasMore, loadMore };
 }
 
 // ─── Shared series pool ─────────────────────────────────────────────
@@ -347,7 +350,7 @@ function CatalogueNotice() {
   return (
     <div className="empty-state" role="alert" style={{ paddingTop: 48, paddingBottom: 24 }}>
       <div className="empty-icon"><Icon name="warning" /></div>
-      <h2 className="empty-title">The shelf is empty right now</h2>
+      <h2 className="empty-title">Movies aren't available right now</h2>
       <p className="empty-subtitle">{error}</p>
       <button
         className="btn btn-accent"

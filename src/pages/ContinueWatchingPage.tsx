@@ -15,7 +15,7 @@ export function ContinueWatchingPage({ movies, onPlay }: ContinueWatchingPagePro
 
   if (movies.length === 0) {
     return (
-      <div style={{ padding: 'calc(var(--nav-height) + 28px + 24px) 48px 48px' }}>
+      <div style={{ padding: 'calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px' }}>
         <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 32 }}>
           Continue Watching
         </h1>
@@ -31,7 +31,7 @@ export function ContinueWatchingPage({ movies, onPlay }: ContinueWatchingPagePro
   }
 
   return (
-    <div style={{ padding: 'calc(var(--nav-height) + 28px + 24px) 48px 48px' }}>
+    <div style={{ padding: 'calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px' }}>
       <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 8 }}>
         Continue Watching
       </h1>

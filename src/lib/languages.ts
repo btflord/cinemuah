@@ -128,6 +128,11 @@ function ensureLoaded() {
     .finally(() => { loading = null; emit(); });
 }
 
+/** Current preference without subscribing (empty = every language, or not loaded yet). */
+export function getLanguagesSnapshot(): string[] {
+  return current ?? [];
+}
+
 /** Updates the in-memory preference (all pages re-filter) without saving. */
 export function setLanguagesCache(languages: string[]) {
   current = Array.from(new Set(languages.map(normLang).filter(Boolean)));

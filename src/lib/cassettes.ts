@@ -2,10 +2,19 @@
 import type { SeriesShow, YtsMovie } from '@/types';
 import type { CassetteItem } from '@/components/CassetteShelf';
 import { errorMessage } from './errors';
+import { IS_WEB } from './platform';
+import { playTrailer } from '@/components/TrailerHost';
 
-export function openTrailer(m: YtsMovie, showToast: (msg: string, type?: 'success' | 'error' | 'info') => void) {
-  if (!m.trailerCode) return;
-  Promise.resolve(window.electronAPI.shell.openExternal(`https://www.youtube.com/watch?v=${encodeURIComponent(m.trailerCode)}`))
+/** Plays a movie's trailer: in-app on the web, in the browser from the desktop app. */
+export async function openTrailer(m: YtsMovie, showToast: (msg: string, type?: 'success' | 'error' | 'info') => void) {
+  let key = m.trailerCode;
+  if (!key && IS_WEB) {
+    // Listings don't include trailers; the detail call does
+    try { key = (await window.electronAPI.yts.get(m.id))?.trailerCode || ''; } catch { key = ''; }
+  }
+  if (!key) { showToast(`No trailer found for ${m.title}`, 'info'); return; }
+  if (IS_WEB) { playTrailer(key, m.title); return; }
+  Promise.resolve(window.electronAPI.shell.openExternal(`https://www.youtube.com/watch?v=${encodeURIComponent(key)}`))
     .catch(err => showToast(errorMessage(err, 'Could not open the trailer'), 'error'));
 }
 
@@ -20,7 +29,7 @@ export function ytsToCassette(m: YtsMovie, poster: string): CassetteItem {
     title: m.title,
     year: m.year,
     poster,
-    tag: qualities[0] === '2160p' ? '4K' : qualities[0] || 'VHS',
+    tag: qualities[0] === '2160p' ? '4K' : qualities[0] || (m.language ? m.language.toUpperCase().slice(0, 3) : 'VHS'),
     rating: m.rating,
     runtime: m.runtime,
     genres: m.genres,

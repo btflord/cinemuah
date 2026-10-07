@@ -4,7 +4,7 @@ A desktop movie and series player built around a **cassette shelf**: films stand
 
 It plays your own video library offline, and browses the YTS movie catalogue and popular series (TVMaze + EZTV) online.
 
-**Website & download:** https://btflord.github.io/cinemuah/
+**Web app:** https://cinemuah.vercel.app · **Desktop download:** https://btflord.github.io/cinemuah/
 
 ---
 
@@ -25,6 +25,12 @@ It plays your own video library offline, and browses the YTS movie catalogue and
 **App**
 - Dark, light or match-system theme; accent colours; native window controls.
 - Settings autosave; a recoverable error screen instead of a blank window; safe database writes.
+
+## Web app
+
+https://cinemuah.vercel.app is the same interface built for the browser (`vite build --mode web`), deployed on Vercel. It browses movies and series from TMDB through small serverless functions in `api/`, so the TMDB key stays on the server, and plays trailers in-app. Streaming, downloads and your own library need the desktop app.
+
+To deploy your own copy: create a free key at themoviedb.org → Settings → API, add it to the Vercel project as the `TMDB_API_KEY` environment variable, and deploy (`vercel deploy --prod`).
 
 ## Running it (macOS, Apple Silicon)
 

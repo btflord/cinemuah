@@ -167,6 +167,8 @@ export interface SeriesShow {
   rating: number;
   status: string;
   network: string;
+  /** YouTube key (web catalogue only) */
+  trailerCode?: string;
 }
 
 export interface SeriesDetail {

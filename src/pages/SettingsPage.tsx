@@ -7,13 +7,14 @@ import { Icon, type IconName } from '@/components/Icon';
 import { errorMessage } from '@/lib/errors';
 import { isImmersiveEnabled, setImmersiveEnabled } from '@/lib/immersive';
 import { getThemeChoice, setThemeChoice, type ThemeChoice } from '@/lib/theme';
+import { IS_WEB, DESKTOP_APP_URL } from '@/lib/platform';
 
 interface SettingsPageProps {
   onScanComplete: () => void;
   onSettingsSaved?: (prefs: PlaybackPrefs) => void;
 }
 
-const SECTIONS: { id: string; label: string; icon: IconName }[] = [
+const ALL_SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'library', label: 'Library', icon: 'folder' },
   { id: 'playback', label: 'Playback', icon: 'play' },
   { id: 'appearance', label: 'Appearance', icon: 'themeAuto' },
@@ -22,6 +23,10 @@ const SECTIONS: { id: string; label: string; icon: IconName }[] = [
   { id: 'connection', label: 'Connection', icon: 'cloud' },
   { id: 'about', label: 'About', icon: 'film' },
 ];
+
+// The web app has no local library, player or YTS connection to configure
+const WEB_SECTIONS = new Set(['appearance', 'languages', 'about']);
+const SECTIONS = IS_WEB ? ALL_SECTIONS.filter(s => WEB_SECTIONS.has(s.id)) : ALL_SECTIONS;
 
 const SPEEDS = ['0.5', '0.75', '1', '1.25', '1.5', '2'];
 const ACCENTS = ['#e50914', '#ff6b35', '#f5c518', '#2ecc71', '#00b4d8', '#4361ee', '#9b5de5', '#f15bb5'];
@@ -318,6 +323,7 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
           <p>Changes are saved automatically.</p>
         </header>
 
+        {!IS_WEB && (
         <Card id="library" title="Library" subtitle="Where your own films live, for Offline mode.">
           <Row title="Movie folder" description="Scanned together with all of its subfolders for video files.">
             <button className="btn btn-secondary btn-sm" onClick={selectFolder}>
@@ -368,7 +374,9 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
             <div className="settings-alert" role="alert"><Icon name="warning" size={16} /> {scanError}</div>
           )}
         </Card>
+        )}
 
+        {!IS_WEB && (
         <Card id="playback" title="Playback">
           <Row title="Resume where you left off" description="Films start from your last position. Continue Watching always resumes.">
             <Toggle on={prefs.autoResume} onChange={v => updatePrefs({ autoResume: v })} label="Resume where you left off" />
@@ -392,6 +400,7 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
             </div>
           </Row>
         </Card>
+        )}
 
         <Card id="appearance" title="Appearance">
           <Row title="Theme" description="Match system follows your Mac's light/dark setting." stacked>
@@ -474,6 +483,7 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
           ))}
         </Card>
 
+        {!IS_WEB && (
         <Card id="metadata" title="Metadata" subtitle="Posters, cast, ratings and descriptions for your own films come from TMDB.">
           <Row
             title="TMDB API key"
@@ -504,7 +514,9 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
             )}
           </Row>
         </Card>
+        )}
 
+        {!IS_WEB && (
         <Card id="connection" title="Connection" subtitle="Online mode streams from YTS mirrors. If they're blocked on your network, add one that works.">
           <Row title="Custom YTS mirror" description="Optional. Tried before the built-in mirrors." stacked>
             <div className="settings-input-group">
@@ -529,6 +541,7 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
             )}
           </Row>
         </Card>
+        )}
 
         <Card id="about" title="About">
           <div className="settings-about">
@@ -540,6 +553,16 @@ export function SettingsPage({ onScanComplete, onSettingsSaved }: SettingsPagePr
               </div>
             </div>
           </div>
+          {IS_WEB && (
+            <div className="settings-alert" style={{ marginBottom: 18 }}>
+              <Icon name="download" size={16} />
+              <span>
+                You're using the web version. Streaming, downloads and playing your own library are in the{' '}
+                <a className="settings-link" href={DESKTOP_APP_URL} target="_blank" rel="noreferrer">Cinemuah desktop app</a>.
+                Movie and series data from TMDB.
+              </span>
+            </div>
+          )}
           <div className="settings-subheading">Keyboard shortcuts</div>
           <div className="settings-shortcuts">
             {SHORTCUTS.map(([keys, what]) => (

@@ -10,7 +10,9 @@ import { watchable, watchableList } from '@/lib/yts';
 import { errorMessage } from '@/lib/errors';
 import { SearchHero, FilterChips, FilterSegment, FilterSelect } from '@/components/SearchHero';
 import { CassetteShelf } from '@/components/CassetteShelf';
+import { MovieShelfActions } from '@/components/MovieActions';
 import { LanguagePicker } from '@/components/LanguagePicker';
+import { IS_WEB, DESKTOP_APP_URL } from '@/lib/platform';
 import { openTrailer, ytsToCassette } from '@/lib/cassettes';
 
 const GENRES = [
@@ -60,7 +62,7 @@ const PAGE_SIZE = 24;
 export function useYtsImage() {
   const { mediaPort } = useMedia();
   return useCallback(
-    (url: string) => (url && mediaPort ? `http://127.0.0.1:${mediaPort}/yts-image?u=${encodeURIComponent(url)}` : ''),
+    (url: string) => (IS_WEB ? url : url && mediaPort ? `http://127.0.0.1:${mediaPort}/yts-image?u=${encodeURIComponent(url)}` : ''),
     [mediaPort]
   );
 }
@@ -88,7 +90,9 @@ export function DiscoverPage() {
   }, []);
   const { query: debouncedQuery, genre, quality, sortBy, minRating } = search;
 
-  const feedKey = JSON.stringify([debouncedQuery.toLowerCase(), genre, quality, sortBy, minRating]);
+  const { languages, ready: languagesReady } = useLanguages();
+  // On the web the server filters by language, so a language change needs a fresh feed
+  const feedKey = JSON.stringify([debouncedQuery.toLowerCase(), genre, quality, sortBy, minRating, IS_WEB ? languages.join(',') : '']);
   const initial = feedCache.get(feedKey);
   const [ytsMovies, setYtsMovies] = useState<YtsMovie[]>(initial?.movies ?? []);
   const [total, setTotal] = useState(initial?.total ?? 0);
@@ -159,7 +163,6 @@ export function DiscoverPage() {
   }, [feedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Language preference (Settings). YTS has no language filter, so results are filtered here.
-  const { languages, ready: languagesReady } = useLanguages();
   const visibleMovies = useMemo(
     () => (languagesReady ? watchableList(ytsMovies, languages) : []),
     [ytsMovies, languages, languagesReady]
@@ -260,7 +263,7 @@ export function DiscoverPage() {
       <SearchHero
         scope="movies"
         title="Movies"
-        subtitle={debouncedQuery ? <>Results for <strong>“{debouncedQuery}”</strong></> : 'Stream or download from YTS'}
+        subtitle={debouncedQuery ? <>Results for <strong>“{debouncedQuery}”</strong></> : IS_WEB ? 'Discover films, ratings and trailers' : 'Stream or download from YTS'}
         placeholder="Search movies by title, actor or year…"
         query={debouncedQuery}
         onQueryChange={q => setSearch({ query: q })}
@@ -289,20 +292,15 @@ export function DiscoverPage() {
             title={debouncedQuery ? 'Top matches' : SORTS.find(o => o.value === sortBy)?.label ?? 'Featured'}
             items={shelfItems}
             onOpen={i => setSelected(shelfMovies[i])}
-            renderActions={i => {
-              const m = shelfMovies[i];
-              if (!m) return null;
-              return (
-                <>
-                  <button className="btn btn-primary" onClick={() => streamDefault(m)}><Icon name="play" /> Stream</button>
-                  <button className="btn btn-secondary" onClick={() => downloadDefault(m)}><Icon name="download" /> Download</button>
-                  {m.trailerCode && (
-                    <button className="btn btn-secondary" onClick={() => openTrailer(m, showToast)}><Icon name="trailer" /> Trailer</button>
-                  )}
-                  <button className="btn btn-ghost" onClick={() => setSelected(m)}><Icon name="info" /> Details</button>
-                </>
-              );
-            }}
+            renderActions={i => shelfMovies[i] && (
+              <MovieShelfActions
+                movie={shelfMovies[i]}
+                onStream={streamDefault}
+                onDownload={downloadDefault}
+                onTrailer={m => openTrailer(m, showToast)}
+                onDetails={setSelected}
+              />
+            )}
           />
           <h2 className="browse-grid-title">{debouncedQuery ? 'All results' : 'All movies'}</h2>
         </div>
@@ -311,8 +309,11 @@ export function DiscoverPage() {
       {showEmptyError && (
         <div className="empty-state" style={{ paddingTop: 60 }}>
           <div className="empty-icon"><Icon name="warning" /></div>
-          <h2 className="empty-title">Couldn't load YTS</h2>
+          <h2 className="empty-title">{IS_WEB ? "Couldn't load movies" : "Couldn't load YTS"}</h2>
           <p className="empty-subtitle">{error}</p>
+          {IS_WEB ? (
+            <button className="btn btn-accent" style={{ marginTop: 16 }} onClick={() => loadPage(1, false)}>Try again</button>
+          ) : (
           <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
             <input
               type="text"
@@ -336,6 +337,7 @@ export function DiscoverPage() {
               Save &amp; Retry
             </button>
           </div>
+          )}
         </div>
       )}
 
@@ -435,14 +437,16 @@ export function YtsCard({ movie: m, posterUrl, onSelect, onStream, onDownload }:
           <div className="card-overlay-actions">
             <button
               className="card-action-btn play"
-              title="Stream (1080p, most peers)"
+              title={IS_WEB ? 'Watch trailer' : 'Stream (1080p, most peers)'}
               onClick={e => { e.stopPropagation(); onStream(m); }}
             ><Icon name="play" /></button>
-            <button
-              className="card-action-btn list"
-              title="Download to library"
-              onClick={e => { e.stopPropagation(); onDownload(m); }}
-            ><Icon name="download" /></button>
+            {!IS_WEB && (
+              <button
+                className="card-action-btn list"
+                title="Download to library"
+                onClick={e => { e.stopPropagation(); onDownload(m); }}
+              ><Icon name="download" /></button>
+            )}
             <button
               className="card-action-btn info"
               title="Details and other qualities"
@@ -458,13 +462,42 @@ export function YtsCard({ movie: m, posterUrl, onSelect, onStream, onDownload }:
       </div>
       <div className="movie-card-info">
         <div className="movie-card-title">{m.title}</div>
-        <div className="movie-card-meta">{m.year} · {qualities}</div>
+        <div className="movie-card-meta">{m.year}{qualities ? ` · ${qualities}` : m.rating > 0 ? ` · ★ ${m.rating.toFixed(1)}` : ''}</div>
       </div>
     </div>
   );
 }
 
 // ─── Detail modal ───────────────────────────────────────────────────
+
+/** Web: fetch the full record (runtime + trailer), offer the trailer and point to the desktop app. */
+function WebMovieActions({ movie }: { movie: YtsMovie }) {
+  const { showToast } = useToast();
+  const [full, setFull] = useState<YtsMovie | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    window.electronAPI.yts.get(movie.id).then(m => { if (!cancelled) setFull(m); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [movie.id]);
+  const m = full ?? movie;
+  return (
+    <>
+      {full && full.runtime > 0 && !movie.runtime && (
+        <p style={{ color: 'var(--text-muted)', marginTop: -12, marginBottom: 20, fontSize: 14 }}>
+          {Math.floor(full.runtime / 60)}h {full.runtime % 60}m
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <button className="btn btn-primary btn-lg" onClick={() => openTrailer(m, showToast)} disabled={!!full && !full.trailerCode}>
+          <Icon name="play" /> {full && !full.trailerCode ? 'No trailer available' : 'Watch trailer'}
+        </button>
+        <a className="btn btn-secondary btn-lg" href={DESKTOP_APP_URL} target="_blank" rel="noreferrer">
+          <Icon name="download" /> Stream in the desktop app
+        </a>
+      </div>
+    </>
+  );
+}
 
 export function YtsDetail({ movie, onClose, onStream, onDownload }: {
   movie: YtsMovie;
@@ -499,7 +532,9 @@ export function YtsDetail({ movie, onClose, onStream, onDownload }: {
             {movie.summary || 'No synopsis available.'}
           </p>
 
-          {movie.torrents.length === 0 ? (
+          {IS_WEB ? (
+            <WebMovieActions movie={movie} />
+          ) : movie.torrents.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No torrents available for this movie.</p>
           ) : (
             <>

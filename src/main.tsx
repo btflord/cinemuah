@@ -5,11 +5,17 @@ import { ToastProvider } from './contexts/ToastContext'
 import { MediaProvider } from './contexts/MediaContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { clientAPI } from './services/api'
+import { webApi } from './services/webApi'
+import { IS_WEB } from './lib/platform'
 import { initImmersive } from './lib/immersive'
 import { initTheme } from './lib/theme'
 import './styles/globals.css'
 
-if (typeof window !== 'undefined' && !(window as any).electronAPI) {
+// Desktop: preload provides window.electronAPI. Web build: the serverless-backed adapter.
+if (IS_WEB) {
+  (window as any).electronAPI = webApi;
+  document.documentElement.dataset.platform = 'web';
+} else if (typeof window !== 'undefined' && !(window as any).electronAPI) {
   (window as any).electronAPI = clientAPI;
 }
 

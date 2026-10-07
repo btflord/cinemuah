@@ -1,5 +1,6 @@
 import type { YtsMovie } from '@/types';
 import { matchesLanguages } from './languages';
+import { IS_WEB } from './platform';
 
 /**
  * Applies the user's viewing rules to a YTS movie:
@@ -10,6 +11,7 @@ import { matchesLanguages } from './languages';
  */
 export function watchable(movie: YtsMovie, languages: string[]): YtsMovie | null {
   if (!matchesLanguages(movie.language, languages)) return null;
+  if (IS_WEB) return movie; // the web catalogue has no torrents; every listed film is shown
   const torrents = movie.torrents.filter(t => t.peers > 0);
   if (torrents.length === 0) return null;
   return torrents.length === movie.torrents.length ? movie : { ...movie, torrents };

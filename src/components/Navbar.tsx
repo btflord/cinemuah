@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Icon } from './Icon';
 import type { AppMode } from '@/types';
 import { cycleTheme, getThemeChoice, type ThemeChoice } from '@/lib/theme';
+import { IS_WEB, DESKTOP_APP_URL } from '@/lib/platform';
 
 const THEME_META: Record<ThemeChoice, { icon: 'moon' | 'sun' | 'themeAuto'; label: string }> = {
   dark: { icon: 'moon', label: 'Dark theme' },
@@ -79,6 +80,7 @@ export function Navbar({ currentPage, onNavigate, onOpenSearch, movieCount, down
       {/* Right side */}
       <div className="navbar-right">
         {/* Online / Offline switch */}
+        {!IS_WEB && (
         <div className="mode-switch" role="group" aria-label="Library source">
           <button
             className={`mode-switch-btn ${mode === 'offline' ? 'active' : ''}`}
@@ -95,6 +97,7 @@ export function Navbar({ currentPage, onNavigate, onOpenSearch, movieCount, down
             <Icon name="cloud" size={14} /> Online
           </button>
         </div>
+        )}
 
         {/* Search: opens the search bar at the top of Movies / Series */}
         <button className="nav-search-trigger" onClick={onOpenSearch} title="Search (⌘K or /)">
@@ -109,7 +112,8 @@ export function Navbar({ currentPage, onNavigate, onOpenSearch, movieCount, down
           </span>
         )}
 
-        {/* Downloads */}
+        {/* Downloads (desktop only) */}
+        {!IS_WEB && (
         <button
           className="icon-btn"
           onClick={() => onNavigate('downloads')}
@@ -125,6 +129,13 @@ export function Navbar({ currentPage, onNavigate, onOpenSearch, movieCount, down
             }}>{downloadCount}</span>
           )}
         </button>
+        )}
+
+        {IS_WEB && (
+          <a className="nav-get-app" href={DESKTOP_APP_URL} target="_blank" rel="noreferrer" title="Stream, download and play your own library">
+            <Icon name="download" size={16} /> Get the app
+          </a>
+        )}
 
         {/* Theme: dark → light → system */}
         <button

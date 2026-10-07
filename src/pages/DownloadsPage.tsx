@@ -39,7 +39,7 @@ export function DownloadsPage() {
   const hasFinished = items.some(i => i.status === 'done' || i.status === 'error');
 
   return (
-    <div style={{ padding: 'calc(var(--nav-height) + 28px + 24px) 48px 48px', maxWidth: 1000 }}>
+    <div style={{ padding: 'calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px', maxWidth: 1000 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', marginBottom: 4 }}>Downloads</h1>

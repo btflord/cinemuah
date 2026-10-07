@@ -15,3 +15,8 @@ release/
 *.log
 .env
 .env.*
+.vercel
+.env*
+
+# Build flag for the web version (not a secret)
+!.env.web

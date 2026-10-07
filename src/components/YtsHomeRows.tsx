@@ -16,8 +16,10 @@ import { YtsDetail, TorrentPlayer, useYtsImage, presetMovieSearch } from '@/page
 import { SeriesDetail, useSeriesActions, presetSeriesSearch } from '@/pages/SeriesPage';
 import { useToast } from '@/contexts/ToastContext';
 import { Icon } from './Icon';
+import { MovieShelfActions } from './MovieActions';
 import { watchableList } from '@/lib/yts';
 import { useLanguages, matchesLanguageName } from '@/lib/languages';
+import { IS_WEB } from '@/lib/platform';
 
 // ─── Layout ─────────────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ interface MovieShelfConfig {
 const PAGE_SIZE = 24;
 
 // The first three match the lists the main process prefetches at startup, so they fill instantly.
-const NEW: MovieShelfConfig = { title: 'New on YTS', options: { sortBy: 'date_added' } };
+const NEW: MovieShelfConfig = { title: IS_WEB ? 'New Releases' : 'New on YTS', options: { sortBy: 'date_added' } };
 const POPULAR: MovieShelfConfig = { title: 'Most Downloaded', options: { sortBy: 'download_count' } };
 const TOP: MovieShelfConfig = { title: 'Top Rated', options: { sortBy: 'rating', minimumRating: 7 } };
 
@@ -68,13 +70,18 @@ const m = (config: MovieShelfConfig): Entry => ({ kind: 'movies', config });
 const sg = (index: number): Entry => ({ kind: 'series-genre', index });
 
 // Movies and series interleave so the page never runs long on one kind
-const LAYOUT: Entry[] = [
-  { kind: 'series-popular' }, m(NEW), m(POPULAR), m(TOP),
+const FULL_LAYOUT: Entry[] = [
+  { kind: 'series-popular' } as Entry, m(NEW), m(POPULAR), m(TOP),
   m(G.action), m(G.comedy), sg(0), m(G.drama), m(G.thriller), sg(1),
   m(G.horror), m(G.scifi), sg(2), m(G.romance), m(G.animation), sg(3),
   m(G.crime), m(G.adventure), sg(4), m(G.fantasy), m(G.family), m(G.mystery), sg(5),
   m(G.documentary), m(G.war), m(G.history), m(G.biography), m(G.music), m(G.sport), m(G.western),
 ];
+
+// TMDB (the web catalogue) has no Biography or Sport genre
+const LAYOUT = IS_WEB
+  ? FULL_LAYOUT.filter(e => !(e.kind === 'movies' && (e.config === G.biography || e.config === G.sport)))
+  : FULL_LAYOUT;
 
 const normTitle = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -97,11 +104,26 @@ function useNearViewport<T extends HTMLElement>(margin = '1200px'): [RefObject<T
   return [ref, near];
 }
 
+// Last catalogue error (cleared by any success), so the Shelf can explain an empty page
+const catalogue = { error: null as string | null, listeners: new Set<() => void>() };
+function setCatalogueError(message: string | null) {
+  if (catalogue.error === message) return;
+  catalogue.error = message;
+  catalogue.listeners.forEach(l => l());
+}
+function useCatalogueError() {
+  return useSyncExternalStore(
+    cb => { catalogue.listeners.add(cb); return () => { catalogue.listeners.delete(cb); }; },
+    () => catalogue.error
+  );
+}
+
 interface PagedMovies { movies: YtsMovie[]; page: number; total: number }
 const movieCache = new Map<string, PagedMovies>();
 
-function useMovieShelf(config: MovieShelfConfig, enabled: boolean) {
-  const key = config.title;
+function useMovieShelf(config: MovieShelfConfig, enabled: boolean, languageKey: string) {
+  // Web: the server filters by language, so each language selection is its own list
+  const key = IS_WEB ? `${config.title}|${languageKey}` : config.title;
   const [state, setState] = useState<PagedMovies | null>(() => movieCache.get(key) ?? null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -121,8 +143,12 @@ function useMovieShelf(config: MovieShelfConfig, enabled: boolean) {
         return next;
       });
       setFailed(false);
-    } catch {
-      if (page === 1) setFailed(true);
+      setCatalogueError(null);
+    } catch (err) {
+      if (page === 1) {
+        setFailed(true);
+        setCatalogueError(errorMessage(err, 'Could not load the catalogue'));
+      }
     } finally {
       busy.current = false;
       setLoading(false);
@@ -130,7 +156,9 @@ function useMovieShelf(config: MovieShelfConfig, enabled: boolean) {
   }, [config, key]);
 
   useEffect(() => {
-    if (enabled && !movieCache.get(key)) load(1);
+    const cached = movieCache.get(key);
+    setState(cached ?? null);
+    if (enabled && !cached) load(1);
   }, [enabled, key, load]);
 
   const hasMore = !!state && state.movies.length < state.total;
@@ -149,11 +177,23 @@ const seriesPool = {
   total: Infinity,
   loading: false,
   failed: false,
+  languageKey: '',
   version: 0,
   listeners: new Set<() => void>(),
 };
 
 const emitSeries = () => { seriesPool.version++; seriesPool.listeners.forEach(l => l()); };
+
+/** Web: the series list is fetched per language selection; start over when it changes. */
+function resetSeriesPoolFor(languageKey: string) {
+  if (!IS_WEB || seriesPool.languageKey === languageKey) return;
+  seriesPool.languageKey = languageKey;
+  seriesPool.shows = [];
+  seriesPool.page = 0;
+  seriesPool.total = Infinity;
+  seriesPool.failed = false;
+  emitSeries();
+}
 
 async function loadMoreSeries() {
   if (seriesPool.loading || seriesPool.shows.length >= seriesPool.total) return;
@@ -260,6 +300,7 @@ export function YtsHomeRows({ localMovies, decade = 'all', onSeeAll, onSeeSeries
 
   return (
     <>
+      <CatalogueNotice />
       {LAYOUT.map((entry, i) => {
         if (entry.kind === 'movies') {
           return (
@@ -299,6 +340,25 @@ export function YtsHomeRows({ localMovies, decade = 'all', onSeeAll, onSeeSeries
   );
 }
 
+/** Shown when the catalogue can't be reached at all, instead of a silently empty Shelf. */
+function CatalogueNotice() {
+  const error = useCatalogueError();
+  if (!error) return null;
+  return (
+    <div className="empty-state" role="alert" style={{ paddingTop: 48, paddingBottom: 24 }}>
+      <div className="empty-icon"><Icon name="warning" /></div>
+      <h2 className="empty-title">The shelf is empty right now</h2>
+      <p className="empty-subtitle">{error}</p>
+      <button
+        className="btn btn-accent"
+        onClick={() => { movieCache.clear(); setCatalogueError(null); window.location.reload(); }}
+      >
+        <Icon name="refresh" /> Try again
+      </button>
+    </div>
+  );
+}
+
 interface MovieActions {
   onSelect: (m: YtsMovie) => void;
   onStream: (m: YtsMovie) => void;
@@ -315,8 +375,8 @@ function MovieShelf({ config, decade, owned, ytsImage, actions, onSeeAll }: {
   onSeeAll: () => void;
 }) {
   const [slotRef, near] = useNearViewport<HTMLDivElement>();
-  const { state, loading, failed, hasMore, loadMore } = useMovieShelf(config, near);
   const { languages, ready: languagesReady } = useLanguages();
+  const { state, loading, failed, hasMore, loadMore } = useMovieShelf(config, near && languagesReady, languages.join(','));
 
   // Language preference, live torrents only, not already in the library, and the decade chip
   const visible = useMemo(
@@ -348,20 +408,15 @@ function MovieShelf({ config, decade, owned, ytsImage, actions, onSeeAll }: {
         onNearEnd={loadMore}
         onSeeAll={onSeeAll}
         onOpen={i => actions.onSelect(visible[i])}
-        renderActions={i => {
-          const mv = visible[i];
-          if (!mv) return null;
-          return (
-            <>
-              <button className="btn btn-primary" onClick={() => actions.onStream(mv)}><Icon name="play" /> Stream</button>
-              <button className="btn btn-secondary" onClick={() => actions.onDownload(mv)}><Icon name="download" /> Download</button>
-              {mv.trailerCode && (
-                <button className="btn btn-secondary" onClick={() => actions.onTrailer(mv)}><Icon name="trailer" /> Trailer</button>
-              )}
-              <button className="btn btn-ghost" onClick={() => actions.onSelect(mv)}><Icon name="info" /> Details</button>
-            </>
-          );
-        }}
+        renderActions={i => visible[i] && (
+          <MovieShelfActions
+            movie={visible[i]}
+            onStream={actions.onStream}
+            onDownload={actions.onDownload}
+            onTrailer={actions.onTrailer}
+            onDetails={actions.onSelect}
+          />
+        )}
       />
     </div>
   );
@@ -378,14 +433,16 @@ function SeriesShelf({ genreIndex, decade, ytsImage, onSelect, onSeeAll }: {
   const pool = useSeriesPool();
   const [slotRef, near] = useNearViewport<HTMLDivElement>();
   const isGenre = genreIndex !== null;
-  const { languages } = useLanguages();
+  const { languages, ready: languagesReady } = useLanguages();
+  const languageKey = languages.join(',');
+  useEffect(() => { if (languagesReady) resetSeriesPoolFor(languageKey); }, [languageKey, languagesReady]);
   const inLanguage = useMemo(() => pool.shows.filter(s => matchesLanguageName(s.language, languages)), [pool.shows, languages]);
 
   // Popular loads the first page as soon as it's near; genre shelves top the pool up to 4 pages
   useEffect(() => {
-    if (!near || pool.loading || pool.failed) return;
+    if (!near || !languagesReady || pool.loading || pool.failed) return;
     if (pool.page === 0 || (isGenre && pool.page < 4 && pool.shows.length < pool.total)) loadMoreSeries();
-  }, [near, isGenre, pool.loading, pool.failed, pool.page, pool.shows.length, pool.total]);
+  }, [near, languagesReady, isGenre, pool.loading, pool.failed, pool.page, pool.shows.length, pool.total]);
 
   const genre = isGenre ? seriesGenres(inLanguage)[genreIndex!] : undefined;
   const visible = useMemo(

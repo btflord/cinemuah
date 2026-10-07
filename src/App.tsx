@@ -16,6 +16,8 @@ import { EditMovie } from '@/components/EditMovie';
 import { useToast } from '@/contexts/ToastContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { requestSearchFocus } from '@/components/SearchHero';
+import { TrailerHost } from '@/components/TrailerHost';
+import { IS_WEB } from '@/lib/platform';
 import { Icon } from '@/components/Icon';
 import { errorMessage } from '@/lib/errors';
 
@@ -51,6 +53,7 @@ export function App() {
   const [prefs, setPrefs] = useState<PlaybackPrefs>({ autoResume: true, defaultSpeed: 1, rememberVolume: true });
   const [downloadCount, setDownloadCount] = useState(0);
   const [mode, setMode] = useState<AppMode>(() => {
+    if (IS_WEB) return 'online'; // the web app has no local library
     try { return localStorage.getItem('cinelocal_mode') === 'offline' ? 'offline' : 'online'; } catch { return 'online'; }
   });
   const modeRef = useRef(mode);
@@ -281,7 +284,7 @@ export function App() {
       return (
         <div className="empty-state" style={{ paddingTop: 200 }}>
           <div className="spinner" />
-          <p style={{ color: 'var(--text-muted)', marginTop: 16 }}>Loading your library...</p>
+          <p style={{ color: 'var(--text-muted)', marginTop: 16 }}>{IS_WEB ? 'Loading…' : 'Loading your library...'}</p>
         </div>
       );
     }
@@ -436,6 +439,8 @@ export function App() {
           onRefreshMetadata={handleRefreshMetadata}
         />
       )}
+
+      <TrailerHost />
 
       {/* Edit Movie Modal */}
       {editingMovie && (

@@ -3,6 +3,8 @@ import { errorMessage } from '@/lib/errors';
 import { SearchHero, FilterChips, FilterSegment, FilterSelect } from '@/components/SearchHero';
 import { CassetteShelf } from '@/components/CassetteShelf';
 import { LanguagePicker } from '@/components/LanguagePicker';
+import { IS_WEB, DESKTOP_APP_URL } from '@/lib/platform';
+import { playTrailer } from '@/components/TrailerHost';
 import { seriesToCassette } from '@/lib/cassettes';
 import type { SeriesShow, SeriesDetail as SeriesDetailData, SeriesEpisode, SeriesTorrent } from '@/types';
 import { pickDefaultEpisodeTorrent } from '@/types';
@@ -200,6 +202,18 @@ export function SeriesDetail({ show, onClose, onStream, onDownload }: {
             <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: 14, maxHeight: 130, overflow: 'auto' }}>
               {show.summary || 'No synopsis available.'}
             </p>
+            {IS_WEB && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                {(detail?.show.trailerCode || show.trailerCode) && (
+                  <button className="btn btn-primary" onClick={() => playTrailer((detail?.show.trailerCode || show.trailerCode)!, show.title)}>
+                    <Icon name="play" /> Watch trailer
+                  </button>
+                )}
+                <a className="btn btn-secondary" href={DESKTOP_APP_URL} target="_blank" rel="noreferrer">
+                  <Icon name="download" /> Watch episodes in the desktop app
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
@@ -223,12 +237,17 @@ export function SeriesDetail({ show, onClose, onStream, onDownload }: {
                 <select value={season ?? ''} onChange={e => setSeason(Number(e.target.value))} style={{ ...inputStyle, cursor: 'pointer' }}>
                   {seasons.map(s => <option key={s} value={s}>Season {s}</option>)}
                 </select>
-                <select value={quality} onChange={e => setQuality(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }} title="Preferred quality">
-                  {QUALITIES.map(q => <option key={q} value={q}>{q === 'auto' ? 'Quality: Auto (1080p first)' : q}</option>)}
-                </select>
-                <button className="btn btn-secondary btn-sm" disabled={availableCount === 0} onClick={downloadSeason} style={{ marginLeft: 'auto' }}>
-                  <Icon name="download" /> Download season ({availableCount})
-                </button>
+                {!IS_WEB && (
+                  <>
+                    <select value={quality} onChange={e => setQuality(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }} title="Preferred quality">
+                      {QUALITIES.map(q => <option key={q} value={q}>{q === 'auto' ? 'Quality: Auto (1080p first)' : q}</option>)}
+                    </select>
+                    <button className="btn btn-secondary btn-sm" disabled={availableCount === 0} onClick={downloadSeason} style={{ marginLeft: 'auto' }}>
+                      <Icon name="download" /> Download season ({availableCount})
+                    </button>
+                  </>
+                )}
+                {IS_WEB && <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-muted)' }}>{episodes.length} episodes</span>}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -250,7 +269,7 @@ export function SeriesDetail({ show, onClose, onStream, onDownload }: {
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                           {ep.airdate && ep.airdate > today ? `Airs ${ep.airdate}` : ep.airdate}
                           {t && <> · {t.quality}{t.codec ? ` ${t.codec}` : ''} · {t.size} · {t.seeds} seeds</>}
-                          {!t && ep.airdate && ep.airdate <= today && <> · No torrents with peers</>}
+                          {!IS_WEB && !t && ep.airdate && ep.airdate <= today && <> · No torrents with peers</>}
                         </div>
                       </div>
                       {t && (
@@ -318,7 +337,8 @@ export function SeriesPage() {
     setSearchState(prev => (savedSeriesSearch = { ...prev, ...patch }));
   }, []);
   const { query: debouncedQuery, genre, status, minRating, sortBy } = search;
-  const feedKey = debouncedQuery.toLowerCase();
+  // On the web the server filters by language, so a language change needs a fresh feed
+  const feedKey = debouncedQuery.toLowerCase() + (IS_WEB ? `|${languages.join(',')}` : '');
   const initial = feedCache.get(feedKey);
   const [shows, setShows] = useState<SeriesShow[]>(initial?.shows ?? []);
   const [total, setTotal] = useState(initial?.total ?? 0);
@@ -416,7 +436,7 @@ export function SeriesPage() {
       <SearchHero
         scope="series"
         title="Series"
-        subtitle={debouncedQuery ? <>Results for <strong>“{debouncedQuery}”</strong></> : 'Popular right now. Stream or download any episode.'}
+        subtitle={debouncedQuery ? <>Results for <strong>“{debouncedQuery}”</strong></> : IS_WEB ? 'Popular right now. Episodes, ratings and trailers.' : 'Popular right now. Stream or download any episode.'}
         placeholder="Search series by title…"
         query={debouncedQuery}
         onQueryChange={q => setSearch({ query: q })}

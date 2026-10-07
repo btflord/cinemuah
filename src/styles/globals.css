@@ -183,7 +183,7 @@ img {
 
 .navbar {
   position: fixed;
-  top: 28px;
+  top: var(--chrome-top);
   left: 0;
   right: 0;
   height: var(--nav-height);
@@ -1292,7 +1292,7 @@ img {
 /* ─── Search Page ──────────────────────────────────────── */
 
 .search-page {
-  padding: calc(var(--nav-height) + 28px + 24px) 48px 48px;
+  padding: calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px;
   min-height: 100%;
 }
 
@@ -1320,7 +1320,7 @@ img {
 /* ─── Genres Page ──────────────────────────────────────── */
 
 .genres-page {
-  padding: calc(var(--nav-height) + 28px + 24px) 48px 48px;
+  padding: calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px;
 }
 
 .genres-grid {
@@ -1365,7 +1365,7 @@ img {
 /* ─── Settings Page ────────────────────────────────────── */
 
 .settings-page {
-  padding: calc(var(--nav-height) + 28px + 24px) 48px 48px;
+  padding: calc(var(--nav-height) + var(--chrome-top) + 24px) 48px 48px;
   max-width: 700px;
 }
 
@@ -2899,7 +2899,7 @@ span.language-pill:hover { color: var(--text-secondary); border-color: var(--bor
 /* ─── Search-first browse pages ─────────────────────────── */
 
 .browse-page {
-  padding: calc(var(--nav-height) + 28px + 20px) 48px 64px;
+  padding: calc(var(--nav-height) + var(--chrome-top) + 20px) 48px 64px;
 }
 
 /* `contents` makes the page (not this small header) the sticky bar's container, so the
@@ -2934,7 +2934,7 @@ span.language-pill:hover { color: var(--text-secondary); border-color: var(--bor
 .search-hero-sticky {
   position: sticky;
   /* Relative to .main-content's content box, which already starts below the navbar's height */
-  top: 28px;
+  top: var(--chrome-top);
   z-index: 60;
   margin: 0 -48px;
   padding: 12px 48px 14px;
@@ -3349,12 +3349,12 @@ span.language-pill:hover { color: var(--text-secondary); border-color: var(--bor
   grid-template-columns: 220px minmax(0, 760px);
   justify-content: center;
   gap: 48px;
-  padding: calc(var(--nav-height) + 28px + 28px) 48px 96px;
+  padding: calc(var(--nav-height) + var(--chrome-top) + 28px) 48px 96px;
 }
 
 .settings-nav {
   position: sticky;
-  top: 28px;
+  top: var(--chrome-top);
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -4066,4 +4066,85 @@ span.language-pill:hover { color: var(--text-secondary); border-color: var(--bor
   border-top: 1px solid var(--border);
   font-size: 12.5px;
   color: var(--text-muted);
+}
+
+/* ─── Window chrome offset ───────────────────────────────────
+   Desktop: a 28px strip above the navbar holds the native window controls. Web: none. */
+:root { --chrome-top: 28px; }
+html[data-platform='web'] { --chrome-top: 0px; }
+html[data-platform='web'] .titlebar { display: none; }
+html[data-platform='web'] .navbar { -webkit-app-region: no-drag; }
+
+.nav-get-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: 700 13px/1 var(--font-sans);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.nav-get-app:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ─── Trailer player ──────────────────────────────────────── */
+.trailer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  animation: info-in 180ms ease both;
+}
+
+.trailer-frame {
+  width: min(1100px, 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+.trailer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 10px 18px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.trailer-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.trailer-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Small screens: the browse layout's wide paddings and the navbar need to tighten */
+@media (max-width: 760px) {
+  html[data-platform='web'] .navbar { padding: 0 14px; gap: 8px; }
+  html[data-platform='web'] .navbar-nav .nav-link { padding: 6px 8px; font-size: 13px; }
+  html[data-platform='web'] .nav-get-app span,
+  html[data-platform='web'] .nav-get-app { padding: 0 10px; font-size: 12px; }
+  .home-header, .shelf-header, .shelf-info { padding-left: 16px; padding-right: 16px; }
+  .browse-page { padding-left: 16px; padding-right: 16px; }
+  .search-hero-sticky { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  .browse-shelf { margin-left: -16px; margin-right: -16px; }
+  .search-hero-input { font-size: 16px; }
+  .search-hero-field { height: 54px; }
 }

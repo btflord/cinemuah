@@ -45,8 +45,8 @@ To deploy your own copy: create a free key at themoviedb.org → Settings → AP
 
 Download from the [latest release](https://github.com/btflord/cinemuah/releases/latest):
 
-- **Cinemuah-Setup-2.0.0.exe**: installer with Start-menu and desktop shortcuts, or
-- **Cinemuah-2.0.0-portable.exe**: runs without installing.
+- **CineLocal-Setup-2.0.0.exe**: installer with Start-menu and desktop shortcuts, or
+- **CineLocal-2.0.0-portable.exe**: runs without installing.
 
 The app isn't code-signed yet, so Windows SmartScreen may say "Windows protected your PC": click **More info → Run anyway**.
 

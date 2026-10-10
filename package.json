@@ -14,7 +14,8 @@
     "build:electron": "npm run build && electron-builder",
     "start": "electron .",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "package:mac": "npm run build && electron-builder --mac --arm64"
+    "package:mac": "npm run build && electron-builder --mac --arm64",
+    "package:win": "bash scripts/build-windows.sh"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",

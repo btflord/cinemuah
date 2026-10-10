@@ -41,6 +41,15 @@ To deploy your own copy: create a free key at themoviedb.org → Settings → AP
    xattr -cr /Applications/CineLocal.app
    ```
 
+## Running it (Windows 10/11, 64-bit)
+
+Download from the [latest release](https://github.com/btflord/cinemuah/releases/latest):
+
+- **Cinemuah-Setup-2.0.0.exe**: installer with Start-menu and desktop shortcuts, or
+- **Cinemuah-2.0.0-portable.exe**: runs without installing.
+
+The app isn't code-signed yet, so Windows SmartScreen may say "Windows protected your PC": click **More info → Run anyway**.
+
 ## Building from source
 
 Requires Node.js 18+.
@@ -50,6 +59,7 @@ npm install
 npm run dev          # Vite + Electron with hot reload
 npm run build        # compile the Electron main process and the React UI
 npm run package:mac  # build a macOS app into release/
+npm run package:win  # build the Windows installer + portable .exe (works from macOS)
 ```
 
 After `npm install` on a new machine, make sure Electron, esbuild and ffmpeg-static downloaded their platform binaries. If npm skipped their install scripts, run `node install.js` inside each of those three packages in `node_modules`.

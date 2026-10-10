@@ -14,7 +14,7 @@
     "build:electron": "npm run build && electron-builder",
     "start": "electron .",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "package:mac": "npm run build && electron-builder --mac --arm64",
+    "package:mac": "bash scripts/build-mac.sh",
     "package:win": "bash scripts/build-windows.sh"
   },
   "dependencies": {
@@ -97,7 +97,37 @@
       "category": "public.app-category.entertainment",
       "identity": null
     },
-    "artifactName": "Cinemuah-${version}-mac-${arch}.${ext}"
+    "artifactName": "Cinemuah-${version}-mac-${arch}.${ext}",
+    "dmg": {
+      "title": "CineLocal",
+      "background": "build/dmg/background.tiff",
+      "window": {
+        "width": 660,
+        "height": 440
+      },
+      "iconSize": 80,
+      "iconTextSize": 12,
+      "contents": [
+        {
+          "x": 165,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 495,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 508,
+          "y": 352,
+          "type": "file",
+          "path": "dmg/First Launch – Fix & Open.command"
+        }
+      ],
+      "artifactName": "CineLocal-${version}-mac-arm64.${ext}"
+    }
   },
   "overrides": {
     "uint8-util": "2.2.5"

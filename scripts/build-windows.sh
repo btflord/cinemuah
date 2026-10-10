@@ -5,7 +5,8 @@
 # temporary folder with Windows production dependencies, then the Windows builds of the two
 # binaries that aren't shipped as prebuilds are fetched: ffmpeg.exe and node-datachannel.
 #
-# Output: release/windows/CineLocal-Setup-<version>.exe and CineLocal-<version>-portable.exe
+# Output: release/windows/CineLocal-Setup-<version>.exe (one-click, per-user), CineLocal-<version>-portable.exe
+#         and CineLocal-<version>-win-x64.zip (no installer: unzip and run CineLocal.exe)
 set -euo pipefail
 
 APP_NAME="${APP_NAME:-CineLocal}"   # same name as the macOS app (CineLocal.app)
@@ -29,14 +30,15 @@ echo "▸ Fetching Windows binaries"
 
 echo "▸ Packaging (Electron $ELECTRON_VERSION)"
 (cd "$ROOT" && CSC_IDENTITY_AUTO_DISCOVERY=false ./node_modules/.bin/electron-builder \
-  --projectDir "$STAGE" --win nsis portable --x64 \
+  --projectDir "$STAGE" --win nsis portable zip --x64 \
   -c.electronVersion="$ELECTRON_VERSION" -c.npmRebuild=false -c.productName="$APP_NAME" \
   -c.directories.output=release-win -c.win.icon=public/cinelocal.ico \
   -c.nsis.artifactName="$APP_NAME"'-Setup-${version}.${ext}' \
   -c.portable.artifactName="$APP_NAME"'-${version}-portable.${ext}' \
+  -c.win.artifactName="$APP_NAME"'-${version}-win-x64.${ext}' \
   -c.nsis.shortcutName="$APP_NAME")
 
 rm -rf "$ROOT/release/windows" && mkdir -p "$ROOT/release/windows"
-cp "$STAGE"/release-win/*.exe "$ROOT/release/windows/"
+cp "$STAGE"/release-win/*.exe "$STAGE"/release-win/*.zip "$ROOT/release/windows/"
 echo "✓ Done:"
 ls -lh "$ROOT/release/windows/"

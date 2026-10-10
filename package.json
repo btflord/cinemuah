@@ -66,13 +66,16 @@
           ]
         }
       ],
-      "icon": "public/cinelocal.ico"
+      "icon": "public/cinelocal.ico",
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     },
     "asar": false,
     "mac": {

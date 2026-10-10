@@ -4,7 +4,7 @@ A desktop movie and series player built around a **cassette shelf**: films stand
 
 It plays your own video library offline, and browses the YTS movie catalogue and popular series (TVMaze + EZTV) online.
 
-**Web app:** https://cinemuah.vercel.app · **Desktop download:** https://btflord.github.io/cinemuah/
+**Web app:** https://cinemuah.vercel.app · **Downloads (Mac & Windows):** https://btflord.github.io/cinemuah/
 
 ---
 
@@ -34,12 +34,9 @@ To deploy your own copy: create a free key at themoviedb.org → Settings → AP
 
 ## Running it (macOS, Apple Silicon)
 
-1. Download `Cinemuah-mac-arm64.zip` from the [latest release](https://github.com/btflord/cinemuah/releases/latest) and unzip it.
-2. Move **CineLocal.app** to Applications.
-3. The app isn't signed with an Apple Developer ID, so the first time, **right-click → Open → Open**. If macOS says the app is damaged, run:
-   ```bash
-   xattr -cr /Applications/CineLocal.app
-   ```
+1. Download **CineLocal-2.0.0-mac-arm64.dmg** from the [latest release](https://github.com/btflord/cinemuah/releases/latest) and open it.
+2. Drag **CineLocal** onto the **Applications** folder in the window that opens.
+3. Double-click **First Launch – Fix & Open** in the same window, once. The app isn't signed with an Apple Developer ID, so macOS quarantines it after download; this removes that flag from CineLocal only and opens it. If macOS asks about the helper itself, right-click it → Open.
 
 ## Running it (Windows 10/11, 64-bit)
 
@@ -58,7 +55,7 @@ Requires Node.js 18+.
 npm install
 npm run dev          # Vite + Electron with hot reload
 npm run build        # compile the Electron main process and the React UI
-npm run package:mac  # build a macOS app into release/
+npm run package:mac  # build the signed macOS app + drag-to-install DMG into release/
 npm run package:win  # build the Windows installer + portable .exe (works from macOS)
 ```
 
